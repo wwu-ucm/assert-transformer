@@ -12,23 +12,22 @@ import spoon.Launcher;
 import spoon.OutputType;
 import spoon.SpoonException;
 
-
 public class Main {
-    
+
     private static Options configureCLIOptions() {
-            Options options = new Options();
-            Option levelOption = new Option("l", "level", true, "Maximum level (default: infinity)");
-            levelOption.setArgName("level");
-            options.addOption(levelOption);
-            Option output = new Option("o", "output", true, "Output directory (default: \"output\")");
-            output.setArgName("file");
-            options.addOption(output);
-            Option preserveOption = new Option("r", "remove-originals", false, "Delete original methods, i.e. keep only transformed methods");
-            options.addOption(preserveOption);
-            Option allAssertions = new Option("a", "all-assertions", false, "Transform all the methods containing an assertion, "
-                    + "without regard to the @AssertTransform annotation");
-            options.addOption(allAssertions);
-            return options;
+        Options options = new Options();
+        Option levelOption = new Option("l", "level", true, "Maximum level (default: infinity)");
+        levelOption.setArgName("level");
+        options.addOption(levelOption);
+        Option output = new Option("o", "output", true, "Output directory (default: \"output\")");
+        output.setArgName("file");
+        options.addOption(output);
+        Option preserveOption = new Option("r", "remove-originals", false, "Delete original methods, i.e. keep only transformed methods");
+        options.addOption(preserveOption);
+        Option allAssertions = new Option("a", "all-assertions", false, "Transform all the methods containing an assertion, "
+                + "without regard to the @AssertTransform annotation");
+        options.addOption(allAssertions);
+        return options;
     }
 
     public static void main(String[] args) {
@@ -53,19 +52,19 @@ public class Main {
                 System.out.println("Source code contains compilation errors");
                 return;
             }
-        
+
             spoon.getEnvironment().setAutoImports(true);
-            
+
             if (cl.hasOption("a")) {
                 spoon.getModelBuilder().process(
                         Arrays.asList("es.ucm.asserttransformer.processors.AnnotateMethodsWithAssertions")
                 );
             }
-            
+
             spoon.getModelBuilder().process(Arrays.asList(
                     "es.ucm.asserttransformer.processors.AnnotateMethodsL0"
             ));
-            
+
             int level = 0;
             do {
                 Globals.numTaggedMethods = 0;
@@ -73,7 +72,7 @@ public class Main {
                         "es.ucm.asserttransformer.processors.AnnotateMethodsLk"
                 ));
                 level++;
-            } while (Globals.numTaggedMethods > 0 &&  level < Globals.maxLevel);
+            } while (Globals.numTaggedMethods > 0 && level < Globals.maxLevel);
             spoon.getModelBuilder().process(Arrays.asList(
                     "es.ucm.asserttransformer.processors.CopyAndTransformMethods",
                     "es.ucm.asserttransformer.processors.RemoveAuxiliaryAnnotations"

@@ -10,8 +10,6 @@ import spoon.processing.AbstractAnnotationProcessor;
 import spoon.reflect.code.CtAssert;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtConstructor;
-import spoon.reflect.declaration.CtElement;
-import spoon.reflect.declaration.CtGenericElement;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.declaration.CtNamedElement;
 
@@ -24,8 +22,6 @@ public class AnnotateMethodsL0 extends AbstractAnnotationProcessor<AssertTransfo
         addProcessedElementType(CtConstructor.class);
     }
 
-    
-    
     @Override
     public void process(AssertTransform a, CtNamedElement e) {
         getFactory().Annotation().annotate(e, MethodTransform.class);

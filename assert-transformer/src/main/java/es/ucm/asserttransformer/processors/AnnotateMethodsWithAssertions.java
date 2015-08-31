@@ -21,5 +21,5 @@ public class AnnotateMethodsWithAssertions extends AbstractProcessor<CtAssert> {
         CtExecutable<?> containerMethod = e.getParent(CtExecutable.class);
         getFactory().Annotation().annotate(containerMethod, AssertTransform.class);
     }
-        
+
 }

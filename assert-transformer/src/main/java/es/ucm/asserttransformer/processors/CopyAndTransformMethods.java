@@ -50,12 +50,14 @@ import spoon.reflect.declaration.CtTypedElement;
 import spoon.reflect.declaration.ModifierKind;
 
 public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodTransform, CtExecutable<?>> {
-    
+
     private enum InsertDirection {
+
         BEFORE, AFTER
     }
-    
+
     private class InsertionPoint {
+
         private final InsertDirection direction;
         private final CtStatement location;
 
@@ -71,7 +73,7 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
         public CtStatement getLocation() {
             return location;
         }
-        
+
         public void performInsertion(List<CtStatement> statements) {
             switch (direction) {
                 case BEFORE:
@@ -91,24 +93,24 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
         System.out.print("Transforming " + e.getSignature() + "...");
         Factory f = getFactory();
         CtTypeReference<Maybe> maybe = f.Type().createReference(Maybe.class);
-        
+
         boolean insideConstructor;
-        
+
         CtClass<?> containerClass = e.getParent(CtClass.class);
         CtTypeReference<ResultContainer> containerType = f.Type().createReference(ResultContainer.class);
         CtParameter<ResultContainer> rcParameter;
-        
+
         CtTypeReference<?> returnTypeOriginal = e.getType();
         CtTypeReference<Maybe> returnTypeCopy = f.Type().createReference(Maybe.class);
         returnTypeCopy.addActualTypeArgument(getHeapType(returnTypeOriginal));
-        
+
         CtExecutable<Maybe> newMethod;
-        
+
         if (e instanceof CtMethod) {
-            newMethod = (CtMethod<Maybe>) f.Method().create(containerClass, (CtMethod<?>)e, true);
+            newMethod = (CtMethod<Maybe>) f.Method().create(containerClass, (CtMethod<?>) e, true);
             newMethod.setType(returnTypeCopy);
             newMethod.setSimpleName(e.getSimpleName() + "Copy");
-            
+
             List<CtReturn<?>> returnStatements = newMethod.getElements((CtReturn<?> x) -> true);
             returnStatements.forEach(
                     (CtReturn<?> exp) -> exp.replace(
@@ -117,7 +119,7 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                             )
                     )
             );
-            
+
             if (e.getType().getQualifiedName().equals("void")) {
                 newMethod.getBody().addStatement(
                         f.Code().createCodeSnippetStatement(
@@ -131,10 +133,10 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
             rcParameter = f.Executable().createParameter(newMethod, containerType, "_rc");
 
             createFactoryMethod(f, containerClass, e);
-            
+
             insideConstructor = true;
-        } 
-        
+        }
+
         CtAnnotation<MethodTransform> annNewMethod = newMethod.getAnnotation(
                 f.Type().createReference(MethodTransform.class)
         );
@@ -144,13 +146,13 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
 
         List<CtAbstractInvocation<?>> calls = newMethod.getAnnotatedChildren(CallTransform.class);
         int index = 0;
-        
+
         while (!calls.isEmpty()) {
             List<CtAbstractInvocation<?>> nextCalls = new LinkedList<>();
             for (CtAbstractInvocation<?> call : calls) {
-                
-                CtTypeReference<?> returnCallType = ((CtTypedElement<?>)call).getType();
-                
+
+                CtTypeReference<?> returnCallType = ((CtTypedElement<?>) call).getType();
+
                 List<CtAbstractInvocation<?>> annotatedChildren = call.getAnnotatedChildren(CallTransform.class);
                 annotatedChildren.remove(call);
                 if (!annotatedChildren.isEmpty()) {
@@ -161,9 +163,9 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                 String auxVarName = "_maybe_" + index;
                 CtLocalVariable<Maybe> auxVar = createAuxiliaryVariableDeclaration(f, auxVarName, returnCallType);
                 newMethod.getBody().insertBegin(auxVar);
-                
-                List<InsertionPoint> insertionPoints = getInsertionPoints((CtStatement)call);
-                
+
+                List<InsertionPoint> insertionPoints = getInsertionPoints((CtStatement) call);
+
                 CtIf conditional = f.Core().createIf();
                 conditional.setCondition(
                         f.Code().createCodeSnippetExpression("!" + auxVarName + ".isValue()")
@@ -171,18 +173,18 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                 if (!insideConstructor) {
                     conditional.setThenStatement(
                             f.Code().createCodeSnippetStatement(
-                                    "return Maybe.propagateError(\"" + 
-                                        e.getSimpleName() + "\", " + index +
-                                        ", " + auxVarName + ")"
+                                    "return Maybe.propagateError(\""
+                                    + e.getSimpleName() + "\", " + index
+                                    + ", " + auxVarName + ")"
                             )
                     );
                 } else {
                     CtBlock block = f.Core().createBlock();
                     block.addStatement(
                             f.Code().createCodeSnippetStatement(
-                                    "_rc.setValue(Maybe.propagateError(\"" + 
-                                        e.getSimpleName() + "\", " + index +
-                                        ", " + auxVarName + "))"
+                                    "_rc.setValue(Maybe.propagateError(\""
+                                    + e.getSimpleName() + "\", " + index
+                                    + ", " + auxVarName + "))"
                             )
                     );
                     block.addStatement(
@@ -190,7 +192,6 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                     );
                     conditional.setThenStatement(block);
                 }
-                
 
                 insertionPoints.forEach(p -> {
                     CtAbstractInvocation<?> invocation = createModifiedInvocation(call, f);
@@ -202,16 +203,14 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                     ));
                 });
 
-                
-                
-                CtInvocation<?> valueInvoc =
-                        createGetValueInvocation(f, auxVar, returnCallType);
+                CtInvocation<?> valueInvoc
+                        = createGetValueInvocation(f, auxVar, returnCallType);
                 call.replace(valueInvoc);
                 index++;
             }
             calls = nextCalls;
         }
-        
+
         List<CtAssert<?>> assertions = newMethod.getAnnotatedChildren(AssertStmTransform.class);
         index = 0;
         for (CtAssert<?> assertion : assertions) {
@@ -221,22 +220,22 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
 
             if (!insideConstructor) {
                 CtStatement generateError = f.Code().createCodeSnippetStatement(
-                        "return Maybe.generateError(\"" +
-                                e.getSimpleName() + "\", " + index + ", " +
-                                assertion.getExpression() +")"
+                        "return Maybe.generateError(\""
+                        + e.getSimpleName() + "\", " + index + ", "
+                        + assertion.getExpression() + ")"
                 );
                 ifStm.setThenStatement(generateError);
             } else {
                 CtBlock block = f.Core().createBlock();
                 CtExpression generateError = f.Code().createCodeSnippetExpression(
-                        "Maybe.generateError(\"" +
-                                e.getSimpleName() + "\", " + index + ", " +
-                                assertion.getExpression() +")"
+                        "Maybe.generateError(\""
+                        + e.getSimpleName() + "\", " + index + ", "
+                        + assertion.getExpression() + ")"
                 );
                 CtStatement dummySetValue = f.Code().createCodeSnippetStatement(
                         "_rc.setValue(" + generateError + ")"
                 );
-                
+
                 CtStatement returnStm = f.Core().createReturn();
                 block.addStatement(dummySetValue);
                 block.addStatement(returnStm);
@@ -245,13 +244,17 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
             assertion.replace(ifStm);
             index++;
         }
-        
+
         if (e instanceof CtMethod) {
-            containerClass.addMethod((CtMethod<Maybe>)newMethod);
-            if (Globals.removeOriginals) containerClass.removeMethod((CtMethod<Maybe>)e);
+            containerClass.addMethod((CtMethod<Maybe>) newMethod);
+            if (Globals.removeOriginals) {
+                containerClass.removeMethod((CtMethod<Maybe>) e);
+            }
         } else {
             containerClass.addConstructor((CtConstructor) newMethod);
-            if (Globals.removeOriginals) containerClass.removeConstructor((CtConstructor)e);
+            if (Globals.removeOriginals) {
+                containerClass.removeConstructor((CtConstructor) e);
+            }
         }
         System.out.println("done");
     }
@@ -279,16 +282,13 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                 return type;
         }
     }
-    
 
-    
     private void createFactoryMethod(Factory f, CtClass<?> containerClass, CtExecutable<?> e) {
         CtBlock block = f.Core().createBlock();
-        CtTypeReference<ResultContainer> typeResC =
-                f.Type().createReference(ResultContainer.class);
+        CtTypeReference<ResultContainer> typeResC
+                = f.Type().createReference(ResultContainer.class);
         typeResC.addActualTypeArgument(containerClass.getReference());
-        
-        
+
         CtLocalVariable<ResultContainer> resCDecl = f.Core().createLocalVariable();
         resCDecl.setType(typeResC);
         resCDecl.setSimpleName("_resC");
@@ -297,31 +297,30 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
         ctCall.setArguments(Arrays.asList());
         resCDecl.setDefaultExpression(ctCall);
         block.addStatement(resCDecl);
-        
-        
+
         CtLocalVariable varResult = f.Core().createLocalVariable();
         varResult.setType(containerClass.getReference());
         varResult.setSimpleName("_result");
-        
+
         CtConstructorCall ctCallClass = f.Core().createConstructorCall();
         ctCallClass.setType(containerClass.getReference());
-        
+
         List<CtExpression> args = new LinkedList();
-        e.getParameters().forEach(par ->
-                args.add(f.Code().createVariableRead(par.getReference(), false))
+        e.getParameters().forEach(par
+                -> args.add(f.Code().createVariableRead(par.getReference(), false))
         );
         args.add(f.Code().createVariableRead(resCDecl.getReference(), false));
         ctCallClass.setArguments(args);
-        
+
         varResult.setDefaultExpression(ctCallClass);
         block.addStatement(varResult);
-        
+
         block.addStatement(
                 f.Code().createCodeSnippetStatement(
                         "return _resC.orElse(_result)"
                 )
         );
-        
+
         CtTypeReference<?> maybeClass = f.Type().createReference(Maybe.class);
         maybeClass.addActualTypeArgument(containerClass.getReference());
         CtMethod<?> factoryMethod = f.Method().create(
@@ -343,8 +342,8 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
     }
 
     private CtInvocation<?> createGetValueInvocation(Factory f, CtLocalVariable<Maybe> auxVar, CtTypeReference<?> returnCallType) {
-        CtInvocation<?> valueInvoc =
-                f.Code().createInvocation(
+        CtInvocation<?> valueInvoc
+                = f.Code().createInvocation(
                         f.Code().createVariableRead(auxVar.getReference(), false),
                         f.Executable().createReference(
                                 f.Type().createReference(Maybe.class),
@@ -368,9 +367,9 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
         CtAbstractInvocation<?> invocation;
         if (call instanceof CtInvocation) {
             modifiedName = call.getExecutable().getSimpleName() + "Copy";
-            
+
             invocation = f.Code().createInvocation(
-                    ((CtInvocation<?>)call).getTarget(),
+                    ((CtInvocation<?>) call).getTarget(),
                     f.Executable().createReference(
                             call.getExecutable().getDeclaringType(),
                             call.getExecutable().getType(),
@@ -378,8 +377,8 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                             call.getExecutable().getParameters()),
                     call.getArguments());
         } else {
-            modifiedName =
-                    call.getExecutable().getType().getSimpleName() + "Factory";
+            modifiedName
+                    = call.getExecutable().getType().getSimpleName() + "Factory";
             invocation = f.Code().createInvocation(
                     null,
                     f.Executable().createReference(
@@ -394,15 +393,15 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
         return invocation;
     }
 
-    private CtIf createGenerationConditional(Factory f, CtAssert<?> assertion, 
+    private CtIf createGenerationConditional(Factory f, CtAssert<?> assertion,
             CtTypeReference<Maybe> maybe, String methodName, int index) {
         CtIf conditional = f.Core().createIf();
         CtUnaryOperator<Boolean> assertConditionNeg = f.Core().createUnaryOperator();
         assertConditionNeg.setKind(UnaryOperatorKind.NOT);
         assertConditionNeg.setOperand(assertion.getAssertExpression());
         conditional.setCondition(assertConditionNeg);
-        CtInvocation<Maybe> generateErrorCall =
-                f.Code().createInvocation(
+        CtInvocation<Maybe> generateErrorCall
+                = f.Code().createInvocation(
                         null,
                         f.Executable().createReference(
                                 maybe,
@@ -417,16 +416,16 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
                         ),
                         f.Code().createLiteral(methodName),
                         f.Code().createLiteral(index),
-                        (assertion.getExpression() == null ?
-                                f.Code().createLiteral(null) :
-                                assertion.getExpression())
+                        (assertion.getExpression() == null
+                                ? f.Code().createLiteral(null)
+                                : assertion.getExpression())
                 );
         CtReturn<Maybe> thenBranch = f.Core().createReturn();
         thenBranch.setReturnedExpression(generateErrorCall);
         conditional.setThenStatement(thenBranch);
         return conditional;
     }
-    
+
     private List<InsertionPoint> getInsertionPoints(CtStatement call) {
         CtStatement current = call;
         CtStatement parent = current.getParent(CtStatement.class);
@@ -434,17 +433,17 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
             current = parent;
             parent = current.getParent(CtStatement.class);
         }
-        
-        if (parent instanceof CtStatementList ||
-                parent instanceof CtSynchronized ||
-                parent instanceof CtTry) { // TODO: Try-with-resources
+
+        if (parent instanceof CtStatementList
+                || parent instanceof CtSynchronized
+                || parent instanceof CtTry) { // TODO: Try-with-resources
             return singletonList(new InsertionPoint(InsertDirection.BEFORE, current));
-        } else if (parent instanceof CtThrow ||
-                parent instanceof CtReturn ||
-                parent instanceof CtAssert ||
-                parent instanceof CtSwitch ||
-                parent instanceof CtAssignment ||
-                parent instanceof CtLocalVariable) {
+        } else if (parent instanceof CtThrow
+                || parent instanceof CtReturn
+                || parent instanceof CtAssert
+                || parent instanceof CtSwitch
+                || parent instanceof CtAssignment
+                || parent instanceof CtLocalVariable) {
             return singletonList(new InsertionPoint(InsertDirection.BEFORE, parent));
         } else if (parent instanceof CtWhile) {
             CtWhile parentWhile = (CtWhile) parent;
@@ -495,10 +494,10 @@ public class CopyAndTransformMethods extends AbstractAnnotationProcessor<MethodT
             return Collections.EMPTY_LIST;
         }
     }
-    
+
     private CtStatement getLastSubstatement(CtStatement stm) {
         if (stm instanceof CtBlock) {
-            return ((CtBlock)stm).getLastStatement();
+            return ((CtBlock) stm).getLastStatement();
         } else {
             return stm;
         }

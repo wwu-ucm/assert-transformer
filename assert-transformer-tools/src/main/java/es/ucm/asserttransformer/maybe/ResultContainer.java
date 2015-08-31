@@ -10,6 +10,7 @@ package es.ucm.asserttransformer.maybe;
  * @author manuel
  */
 public class ResultContainer<T> {
+
     public Maybe<T> value;
 
     public ResultContainer() {
@@ -19,7 +20,7 @@ public class ResultContainer<T> {
     public void setValue(Maybe<T> value) {
         this.value = value;
     }
-    
+
     public Maybe<T> orElse(T other) {
         if (value == null) {
             return Maybe.createValue(other);
