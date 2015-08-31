@@ -25,6 +25,9 @@ public class Main {
             options.addOption(output);
             Option preserveOption = new Option("r", "remove-originals", false, "Delete original methods, i.e. keep only transformed methods");
             options.addOption(preserveOption);
+            Option allAssertions = new Option("a", "all-assertions", false, "Transform all the methods containing an assertion, "
+                    + "without regard to the @AssertTransform annotation");
+            options.addOption(allAssertions);
             return options;
     }
 
@@ -52,6 +55,13 @@ public class Main {
             }
         
             spoon.getEnvironment().setAutoImports(true);
+            
+            if (cl.hasOption("a")) {
+                spoon.getModelBuilder().process(
+                        Arrays.asList("es.ucm.asserttransformer.processors.AnnotateMethodsWithAssertions")
+                );
+            }
+            
             spoon.getModelBuilder().process(Arrays.asList(
                     "es.ucm.asserttransformer.processors.AnnotateMethodsL0"
             ));

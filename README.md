@@ -20,12 +20,15 @@ This tool transforms all the source code files contained within a given folder.
 
 You have to annotate the methods to be transformed with the `@AssertTransform` annotation. This annotation is defined in the `assert-transformer-tools` project. An output folder will be generated with the transformed versions of the input folder. These versions make use of several classes (e.g. `Maybe`, `ResultContainer`, etc) which are implemented in `assert-transformer-tools`.
 
-	Usage: assert-transformer input_folder [options]
-	 -l,--level <level>      Maximum level (default: infinity)
-	 -o,--output <file>      Output directory (default: "output")
-	 -r,--remove-originals   Delete original methods, i.e. keep only
-				 transformed methods
+        Usage: assert-transformer input_folder [options]
+         -a,--all-assertions     Transform all the methods containing an
+                                 assertion, without regard to the @AssertTransform
+                                 annotation
+         -l,--level <level>      Maximum level (default: infinity)
+         -o,--output <file>      Output directory (default: "output")
+         -r,--remove-originals   Delete original methods, i.e. keep only
+                                 transformed methods
 
 Usage example:
 
-	java -jar assert-transformer.jar assert-transformer-test/src
+        java -jar assert-transformer.jar assert-transformer-test/src
