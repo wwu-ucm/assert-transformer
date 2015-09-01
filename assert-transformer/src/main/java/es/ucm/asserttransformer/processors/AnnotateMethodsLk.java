@@ -18,6 +18,7 @@ public class AnnotateMethodsLk extends AbstractProcessor<CtAbstractInvocation<?>
         if (calledMethod != null) {
             MethodTransform annCalled = calledMethod.getAnnotation(MethodTransform.class);
             CtExecutable<?> parent = e.getParent(CtExecutable.class);
+            if (parent == null) return;
             MethodTransform annParent = parent.getAnnotation(MethodTransform.class);
             if (annCalled != null && (annCalled.level() < Globals.maxLevel || annParent != null)) {
                 getFactory().Annotation().annotate(e, CallTransform.class);
